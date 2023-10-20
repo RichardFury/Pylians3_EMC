@@ -88,7 +88,7 @@ def Pk_comp(snapshot_fname,ptype,dims,do_RSD,axis,cpus,folder_out):
     delta /= mean;  delta -= 1.0
     Pk = PKL.Pk(delta,BoxSize,axis=axis,MAS='CIC',threads=cpus);  del delta
     np.savetxt(fout,np.transpose([Pk.k3D, Pk.Pk[:,0], Pk.Pk[:,1], Pk.Pk[:,2],
-                                  Pk.Nmodes3D]))
+                                  Pk.Nmodes3D, Pk.std3D]))
 ###############################################################################
 
 ###############################################################################
@@ -264,6 +264,7 @@ def Pk_Gadget(snapshot_fname,dims,particle_type,do_RSD,axis,cpus,
                                           data.Pk[:,0],
                                           data.Pk[:,1],
                                           data.Pk[:,2],
-                                          data.Nmodes3D]))
+                                          data.Nmodes3D,
+                                          data.std3D]))
 ###############################################################################
 ###############################################################################

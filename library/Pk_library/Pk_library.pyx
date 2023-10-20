@@ -272,7 +272,7 @@ class Pk:
         cdef float MAS_factor
         cdef np.complex64_t[:,:,::1] delta_k
         ###############################################
-        cdef np.float64_t[::1] k1D, kpar, kper, k3D, Pk1D, Pk2D, Pkphase
+        cdef np.float64_t[::1] k1D, kpar, kper, k3D, Pk1D, Pk2D, Pkphase, std3D
         cdef np.float64_t[::1] Nmodes1D, Nmodes2D, Nmodes3D
         cdef np.float64_t[:,::1] Pk3D 
 
@@ -303,6 +303,7 @@ class Pk:
         Pk3D     = np.zeros((kmax+1,3), dtype=np.float64)
         Pkphase  = np.zeros(kmax+1,     dtype=np.float64)
         Nmodes3D = np.zeros(kmax+1,     dtype=np.float64)
+        std3D    = np.zeros(kmax+1,     dtype=np.float64)
 
 
         # do a loop over the independent modes.
@@ -376,6 +377,53 @@ class Pk:
                     Pk3D[k_index,2]   += (delta2*(35.0*mu2*mu2 - 30.0*mu2 + 3.0)/8.0)
                     Pkphase[k_index]  += (phase*phase)
                     Nmodes3D[k_index] += 1.0
+
+        # Calculate the Statistical Error
+        for kxx in range(dims):
+            kx = (kxx-dims if (kxx>middle) else kxx)
+            MAS_corr[0] = MAS_correction(prefact*kx,MAS_index)
+
+            for kyy in range(dims):
+                ky = (kyy-dims if (kyy>middle) else kyy)
+                MAS_corr[1] = MAS_correction(prefact*ky,MAS_index)
+
+                for kzz in range(middle+1): #kzz=[0,1,...,middle] --> kz>0
+                    kz = (kzz-dims if (kzz>middle) else kzz)
+                    MAS_corr[2] = MAS_correction(prefact*kz,MAS_index)
+
+                    # kz=0 and kz=middle planes are special
+                    if kz==0 or (kz==middle and dims%2==0):
+                        if kx<0.0: continue
+                        elif kx==0 or (kx==middle and dims%2==0):
+                            if ky<0.0: continue
+
+                    
+                    # compute |k| of the mode and its integer part
+                    k       = sqrt(kx*kx + ky*ky + kz*kz)
+                    k_index = <int>k
+
+                    # compute the value of k_par and k_perp
+                    if axis==0:   
+                        k_par, k_per = kx, <int>sqrt(ky*ky + kz*kz)
+                    elif axis==1: 
+                        k_par, k_per = ky, <int>sqrt(kx*kx + kz*kz)
+                    else:         
+                        k_par, k_per = kz, <int>sqrt(kx*kx + ky*ky)
+                    
+                    # take the absolute value of k_par
+                    if k_par<0:  k_par = -k_par
+
+                    # correct modes amplitude for MAS
+                    MAS_factor = MAS_corr[0]*MAS_corr[1]*MAS_corr[2]
+                    delta_k[kxx,kyy,kzz] = delta_k[kxx,kyy,kzz]*MAS_factor
+
+                    # compute |delta_k|^2 of the mode
+                    real = delta_k[kxx,kyy,kzz].real
+                    imag = delta_k[kxx,kyy,kzz].imag
+                    delta2 = real*real + imag*imag
+
+                    # Pk3D.
+                    std3D[k_index] += (delta2 - (Pk3D[k_index,0]/Nmodes3D[k_index]))**2
         if verbose:  print('Time to complete loop = %.2f'%(time.time()-start2))
 
         # Pk1D. Discard DC mode bin and give units
