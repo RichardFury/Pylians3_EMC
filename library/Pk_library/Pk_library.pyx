@@ -381,15 +381,12 @@ class Pk:
         # Calculate the Statistical Error
         for kxx in range(dims):
             kx = (kxx-dims if (kxx>middle) else kxx)
-            MAS_corr[0] = MAS_correction(prefact*kx,MAS_index)
 
             for kyy in range(dims):
                 ky = (kyy-dims if (kyy>middle) else kyy)
-                MAS_corr[1] = MAS_correction(prefact*ky,MAS_index)
 
                 for kzz in range(middle+1): #kzz=[0,1,...,middle] --> kz>0
                     kz = (kzz-dims if (kzz>middle) else kzz)
-                    MAS_corr[2] = MAS_correction(prefact*kz,MAS_index)
 
                     # kz=0 and kz=middle planes are special
                     if kz==0 or (kz==middle and dims%2==0):
@@ -401,21 +398,6 @@ class Pk:
                     # compute |k| of the mode and its integer part
                     k       = sqrt(kx*kx + ky*ky + kz*kz)
                     k_index = <int>k
-
-                    # compute the value of k_par and k_perp
-                    if axis==0:   
-                        k_par, k_per = kx, <int>sqrt(ky*ky + kz*kz)
-                    elif axis==1: 
-                        k_par, k_per = ky, <int>sqrt(kx*kx + kz*kz)
-                    else:         
-                        k_par, k_per = kz, <int>sqrt(kx*kx + ky*ky)
-                    
-                    # take the absolute value of k_par
-                    if k_par<0:  k_par = -k_par
-
-                    # correct modes amplitude for MAS
-                    MAS_factor = MAS_corr[0]*MAS_corr[1]*MAS_corr[2]
-                    delta_k[kxx,kyy,kzz] = delta_k[kxx,kyy,kzz]*MAS_factor
 
                     # compute |delta_k|^2 of the mode
                     real = delta_k[kxx,kyy,kzz].real
@@ -455,15 +437,16 @@ class Pk:
         # we need to multiply the multipoles by (2*ell + 1)
         check_number_modes(Nmodes3D,dims)
         k3D  = k3D[1:];  Nmodes3D = Nmodes3D[1:];  Pk3D = Pk3D[1:,:]
-        Pkphase = Pkphase[1:]
+        Pkphase = Pkphase[1:]; std3D = std3D[1:]
         for i in range(len(k3D)):
             k3D[i]     = (k3D[i]/Nmodes3D[i])*kF
             Pk3D[i,0]  = (Pk3D[i,0]/Nmodes3D[i])*(BoxSize/dims**2)**3
             Pk3D[i,1]  = (Pk3D[i,1]*5.0/Nmodes3D[i])*(BoxSize/dims**2)**3
             Pk3D[i,2]  = (Pk3D[i,2]*9.0/Nmodes3D[i])*(BoxSize/dims**2)**3
             Pkphase[i] = (Pkphase[i]/Nmodes3D[i])*(BoxSize/dims**2)**3
+            std3D[i]   = sqrt(std3D[i]/(Nmodes3D[i]))*(BoxSize/dims**2)**3
         self.k3D = np.asarray(k3D);  self.Nmodes3D = np.asarray(Nmodes3D)
-        self.Pk = np.asarray(Pk3D);  self.Pkphase = Pkphase
+        self.Pk = np.asarray(Pk3D);  self.Pkphase = Pkphase; self.std3D = np.asarray(std3D)
 
         if verbose:  print('Time taken = %.2f seconds'%(time.time()-start))
 ################################################################################

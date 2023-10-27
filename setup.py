@@ -79,6 +79,11 @@ ext_modules = [
         "HI_clusters_library.HI_clusters_library",
         ["library/HI_clusters_library/HI_clusters_library.pyx"],
     ),
+    Extension(
+        "velocity_library.velocity_library",
+        ["library/velocity_library/velocity_library.pyx"],
+        extra_compile_args=extra_compile_args_omp,
+    ),
 ]
 
 
@@ -87,7 +92,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="Pylians",
-    version="0.11",
+    version="0.11-dev",
     author="Francisco Villaescusa-Navarro",
     author_email="villaescusa.francisco@gmail.com",
     description="Python libraries for the analysis of numerical simulations",
